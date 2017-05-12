@@ -14,13 +14,13 @@
 
 class Inference {
 public:
-	Inference();
+	Inference(const std::string& model_file, const std::string& weight_file);
 	~Inference() {}
 	std::vector<float> Predict(const cv::Mat& img);
 	void WrapInputLayer(std::vector<cv::Mat>* input_channels);
-	void Inference::Preprocess(const cv::Mat& img, std::vector<cv::Mat>* input_channels);
+	void Preprocess(const cv::Mat& img, std::vector<cv::Mat>* input_channels);
 private:
-	std::shared_ptr<caffe.Net<float> > net_;
+	std::shared_ptr<caffe::Net<float> > net_;
 	cv::Size input_geometry_;
 	int num_channels_;
 };
