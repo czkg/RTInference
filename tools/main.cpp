@@ -11,11 +11,13 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <utilities.hpp>
 #include <preprocess.hpp>
+#include <inference.hpp>
 
 #define SAMPLE_READ_WAIT_TIMEOUT 2000 //2000ms
 #define radius 80   //radius of the ROI
-#define size 96   //network input size
+#define input_size 96   //network input size
 #define thres 0.7  //threshold to segment the hand from backgrounds
+#define heatmap_width 20 //width of the heatmap
 
 using namespace openni;
 
@@ -61,6 +63,10 @@ int main(int argc, char** argv)
 	}
 
 	VideoFrameRef frame;
+
+	std::string model_file = "../deploy_all_1.prototxt";
+	std::string weight_file = "../snapshot_iter_10000_1.caffemodel.h5";
+	Inference inference(model_file, weight_file);
 
 	while (!wasKeyboardHit())
 	{
@@ -109,20 +115,26 @@ int main(int argc, char** argv)
 		cv::Mat_<float> cropped = im32f(cv::Range(p1.y, p2.y), cv::Range(p1.x, p2.x));
 		//resize to appropriate size so we can put it into network
 		cv::Mat_<float> resized;
-		cv::resize(cropped, resized, cv::Size(size, size), 0, 0, cv::INTER_AREA);
+		cv::resize(cropped, resized, cv::Size(input_size, input_size), 0, 0, cv::INTER_AREA);
 		//find the hand region
 		cropped.setTo(1.0, (cropped > thres) | (cropped <= 0));
 		//normalize hand
 		cv::Mat_<float> normalized = Preprocess::normalizeHand(cropped);
 		cv::Mat_<float> filtered = Preprocess::filter(normalized);
 		filtered = (filtered + 1.0) / 2.0;
-		// cv::imshow("filtered", filtered);
-		// cv::waitKey(1);
+		cv::imshow("filtered", filtered);
+		cv::waitKey(1);
 
 		//feed the image into the network
+		std::vector<float> result = inference.Predict(filtered);
+		std::vector<std::vector<float> > results;
+		results.resize(20);
+		int heatmap_size = heatmap_width * heatmap_width;
 
+		for(int i = 0; i < 20; i++) {
 
-
+		}
+		
 
 		int middleIndex = (frame.getHeight()+1)*frame.getWidth()/2;
 
