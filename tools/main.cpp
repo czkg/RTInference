@@ -12,6 +12,8 @@
 #include <utilities.hpp>
 #include <preprocess.hpp>
 #include <inference.hpp>
+#include <vector>
+#include <algorithm>
 
 #define SAMPLE_READ_WAIT_TIMEOUT 2000 //2000ms
 #define radius 80   //radius of the ROI
@@ -65,7 +67,7 @@ int main(int argc, char** argv)
 	VideoFrameRef frame;
 
 	std::string model_file = "../deploy_all_1.prototxt";
-	std::string weight_file = "../snapshot_iter_10000_1.caffemodel.h5";
+	std::string weight_file = "../snapshot_iter_10000.caffemodel.h5";
 	Inference inference(model_file, weight_file);
 
 	while (!wasKeyboardHit())
@@ -120,21 +122,27 @@ int main(int argc, char** argv)
 		cropped.setTo(1.0, (cropped > thres) | (cropped <= 0));
 		//normalize hand
 		cv::Mat_<float> normalized = Preprocess::normalizeHand(cropped);
-		cv::Mat_<float> filtered = Preprocess::filter(normalized);
-		filtered = (filtered + 1.0) / 2.0;
-		cv::imshow("filtered", filtered);
-		cv::waitKey(1);
+		// cv::Mat_<float> filtered = Preprocess::filter(normalized);
+		// filtered = (filtered + 1.0) / 2.0;
 
 		//feed the image into the network
-		std::vector<float> result = inference.Predict(filtered);
-		std::vector<std::vector<float> > results;
-		results.resize(20);
+		std::vector<float> result = inference.Predict(normalized);
 		int heatmap_size = heatmap_width * heatmap_width;
+		std::vector<cv::Point> coordinates;
+		coordinates.resize(20);
+		//cv::cvtColor(filtered, filtered, CV_GRAY2BGR);
 
 		for(int i = 0; i < 20; i++) {
-
+			std::vector<float> current(result.begin() + i * heatmap_size, result.begin() + (i + 1) * heatmap_size);
+			auto ite_max = std::max_element(current.begin(), current.end());
+			int max = std::distance(current.begin(), ite_max);
+			float x = (max % heatmap_width) / (float)heatmap_width * (float)input_size; 
+			float y = (max / heatmap_width) / (float)heatmap_width * (float)input_size;
+			coordinates[i] = cv::Point(x, y);
+			cv::circle(normalized, coordinates[i], 2, cv::Scalar(0, 0, 255));
 		}
-		
+		cv::imshow("normalized", normalized);
+		cv::waitKey(1);
 
 		int middleIndex = (frame.getHeight()+1)*frame.getWidth()/2;
 
