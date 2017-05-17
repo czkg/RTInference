@@ -6,13 +6,23 @@ Inference::Inference(const std::string& model_file, const std::string& weight_fi
 	net_.reset(new caffe::Net<float>(model_file, caffe::TEST));
 	//weight file: caffe model
 	net_->CopyTrainedLayersFrom(weight_file);
-	caffe::Blob<float>* input_layer = net_->input_blobs()[0];
-	input_geometry_ = cv::Size(input_layer->width(), input_layer->height());
+
+	input_geometry_.resize(numInputs());
+	caffe::Blob<float>* input_layer;
+
+	for(int idx = 0; idx < numInputs(); idx++) {
+		input_layer = net_->input_blobs()[idx];
+		input_geometry_[idx] = cv::Size(input_layer->width(), input_layer->height());
+	}
 	num_channels_ = input_layer->channels();
 }
 
-void Inference::WrapInputLayer(std::vector<cv::Mat>* input_channels) {
-  caffe::Blob<float>* input_layer = net_->input_blobs()[0];
+int Inference::numInputs() {
+	return net_->input_blobs().size();
+}
+
+void Inference::WrapInputLayer(std::vector<cv::Mat>* input_channels, const int& idx) {
+  caffe::Blob<float>* input_layer = net_->input_blobs()[idx];
 
   int width = input_layer->width();
   int height = input_layer->height();
@@ -24,13 +34,13 @@ void Inference::WrapInputLayer(std::vector<cv::Mat>* input_channels) {
   }
 }
 
-void Inference::Preprocess(const cv::Mat& img, std::vector<cv::Mat>* input_channels) {
+void Inference::Preprocess(const cv::Mat& img, std::vector<cv::Mat>* input_channels, const int& idx) {
   /* Convert the input image to the input image format of the network. */
   cv::Mat sample = img;
 
   cv::Mat sample_resized;
-  if (sample.size() != input_geometry_)
-    cv::resize(sample, sample_resized, input_geometry_);
+  if (sample.size() != input_geometry_[idx])
+    cv::resize(sample, sample_resized, input_geometry_[idx]);
   else
     sample_resized = sample;
 
@@ -43,19 +53,23 @@ void Inference::Preprocess(const cv::Mat& img, std::vector<cv::Mat>* input_chann
   cv::split(sample_float, *input_channels);
 
   CHECK(reinterpret_cast<float*>(input_channels->at(0).data)
-        == net_->input_blobs()[0]->cpu_data())
+        == net_->input_blobs()[idx]->cpu_data())
     << "Input channels are not wrapping the input layer of the network.";
 }
 
-std::vector<float> Inference::Predict(const cv::Mat& img) {
-	caffe::Blob<float>* input_layer = net_->input_blobs()[0];
-	input_layer->Reshape(1, num_channels_, input_geometry_.height, input_geometry_.width);
+std::vector<float> Inference::Predict(const std::vector<cv::Mat_<float> >& imgs) {
+	for(int idx = 0; idx < numInputs(); idx++) {
+		caffe::Blob<float>* input_layer = net_->input_blobs()[idx];
+		input_layer->Reshape(1, num_channels_, input_geometry_[idx].height, input_geometry_[idx].width);
+	}
 
 	net_->Reshape();
 
-	std::vector<cv::Mat> input_channels;
-	WrapInputLayer(&input_channels);
-	Preprocess(img, &input_channels);
+	for(int idx = 0; idx < numInputs(); idx++) {
+		std::vector<cv::Mat> input_channels;
+		WrapInputLayer(&input_channels, idx);
+		Preprocess(imgs[idx], &input_channels, idx);
+	}
 
 	net_->Forward();
 

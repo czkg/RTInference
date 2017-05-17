@@ -20,6 +20,7 @@
 #define input_size 96   //network input size
 #define thres 0.7  //threshold to segment the hand from backgrounds
 #define heatmap_width 20 //width of the heatmap
+#define mul 3  //the multiple of the dispaly window
 
 using namespace openni;
 
@@ -34,10 +35,7 @@ int main(int argc, char** argv)
 
 	Device device;
 
-    if (argc < 2)
-        rc = device.open(ANY_DEVICE);
-    else
-        rc = device.open(argv[1]);
+    rc = device.open(ANY_DEVICE);
 
     if (rc != STATUS_OK)
 	{
@@ -66,8 +64,8 @@ int main(int argc, char** argv)
 
 	VideoFrameRef frame;
 
-	std::string model_file = "../deploy_all_1.prototxt";
-	std::string weight_file = "../snapshot_iter_10000.caffemodel.h5";
+	std::string model_file = argv[1];
+	std::string weight_file = argv[2];
 	Inference inference(model_file, weight_file);
 
 	while (!wasKeyboardHit())
@@ -110,43 +108,66 @@ int main(int argc, char** argv)
 		cv::rectangle(dis, p1, p2, cv::Scalar(0, 0, 255));
 
 		//show image
-		cv::imshow("frame", dis);
-		cv::waitKey(1);
+		// cv::imshow("frame", dis);
+		// cv::waitKey(1);
 
 		//crop the image to feed into the network
 		cv::Mat_<float> cropped = im32f(cv::Range(p1.y, p2.y), cv::Range(p1.x, p2.x));
-		//resize to appropriate size so we can put it into network
-		cv::Mat_<float> resized;
-		cv::resize(cropped, resized, cv::Size(input_size, input_size), 0, 0, cv::INTER_AREA);
 		//find the hand region
 		cropped.setTo(1.0, (cropped > thres) | (cropped <= 0));
 		//normalize hand
 		cv::Mat_<float> normalized = Preprocess::normalizeHand(cropped);
+		//resize to appropriate size so we can put it into network
+		cv::Mat_<float> normalized_high, normalized_mid, normalized_low;
+		std::vector<cv::Mat_<float> > imgs;
+		if(inference.numInputs() == 1) {
+			cv::resize(normalized, normalized, cv::Size(input_size, input_size), 0, 0, cv::INTER_AREA);
+			imgs.push_back(normalized);
+		}
+		else {
+			cv::resize(normalized, normalized_high, cv::Size(input_size, input_size), 0, 0, cv::INTER_AREA);
+			cv::resize(normalized, normalized_mid, cv::Size(input_size / 2, input_size / 2), 0, 0, cv::INTER_AREA);
+			cv::resize(normalized, normalized_low, cv::Size(input_size / 4, input_size / 4), 0, 0, cv::INTER_AREA);
+			imgs.push_back(normalized_high);
+			imgs.push_back(normalized_mid);
+			imgs.push_back(normalized_low);
+		}
 		// cv::Mat_<float> filtered = Preprocess::filter(normalized);
 		// filtered = (filtered + 1.0) / 2.0;
 
 		//feed the image into the network
-		std::vector<float> result = inference.Predict(normalized);
+		std::vector<float> result = inference.Predict(imgs);
 		int heatmap_size = heatmap_width * heatmap_width;
 		std::vector<cv::Point> coordinates;
 		coordinates.resize(20);
 		//cv::cvtColor(filtered, filtered, CV_GRAY2BGR);
 
+		// cv::Mat_<float> nor_dis = normalized;
+		// cv::resize(nor_dis, nor_dis, cv::Size(), mul, mul, cv::INTER_AREA);
+
 		for(int i = 0; i < 20; i++) {
 			std::vector<float> current(result.begin() + i * heatmap_size, result.begin() + (i + 1) * heatmap_size);
 			auto ite_max = std::max_element(current.begin(), current.end());
 			int max = std::distance(current.begin(), ite_max);
-			float x = (max % heatmap_width) / (float)heatmap_width * (float)input_size; 
-			float y = (max / heatmap_width) / (float)heatmap_width * (float)input_size;
+			// float x = (max % heatmap_width) / (float)heatmap_width * (float)input_size * (float)mul;
+			// float y = (max / heatmap_width) / (float)heatmap_width * (float)input_size * (float)mul;
+			float x = (max % heatmap_width) / (float)heatmap_width * (float)radius * 2.0;
+			float y = (max / heatmap_width) / (float)heatmap_width * (float)radius * 2.0;
+			x += p1.x;
+			y += p1.y;
 			coordinates[i] = cv::Point(x, y);
-			cv::circle(normalized, coordinates[i], 2, cv::Scalar(0, 0, 255));
+			cv::circle(dis, coordinates[i], 2, cv::Scalar(0, 0, 255));
 		}
-		cv::imshow("normalized", normalized);
+		// cv::imshow("normalized", nor_dis);
+		// cv::waitKey(1);
+
+		//show image
+		cv::imshow("frame", dis);
 		cv::waitKey(1);
 
 		int middleIndex = (frame.getHeight()+1)*frame.getWidth()/2;
 
-		printf("[%08llu] %8d\n", (long long)frame.getTimestamp(), pDepth[middleIndex]);
+		//printf("[%08llu] %8d\n", (long long)frame.getTimestamp(), pDepth[middleIndex]);
 	}
 
 	depth.stop();
