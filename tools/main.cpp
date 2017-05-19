@@ -67,6 +67,9 @@ int main(int argc, char** argv)
 	std::string model_file = argv[1];
 	std::string weight_file = argv[2];
 	Inference inference(model_file, weight_file);
+	int counter1 = 0;
+	int counter2 = 0;
+	int counter3 = 0;
 
 	while (!wasKeyboardHit())
 	{
@@ -117,6 +120,38 @@ int main(int argc, char** argv)
 		cropped.setTo(1.0, (cropped > thres) | (cropped <= 0));
 		//normalize hand
 		cv::Mat_<float> normalized = Preprocess::normalizeHand(cropped);
+		cv::imshow("nor", normalized);
+		cv::Mat_<float> high;
+		cv::Mat_<float> mid;
+		cv::Mat_<float> low;
+		cv::resize(normalized, high, cv::Size(96, 96), 0, 0, cv::INTER_AREA);
+		cv::resize(high, mid, cv::Size(), 0.5, 0.5, cv::INTER_AREA);
+		cv::resize(high, low, cv::Size(), 0.25, 0.25, cv::INTER_AREA);
+		std::vector<cv::Mat_<float>> d1;
+		cv::Mat_<cv::Vec3f> f1;
+		d1.push_back(high);
+		d1.push_back(high);
+		d1.push_back(high);
+		cv::merge(d1, f1);
+		cv::imwrite("camera_0_"+std::to_string(counter1++)+".exr", f1);
+
+		std::vector<cv::Mat_<float>> d2;
+		cv::Mat_<cv::Vec3f> f2;
+		d2.push_back(mid);
+		d2.push_back(mid);
+		d2.push_back(mid);
+		cv::merge(d2, f2);
+		cv::imwrite("camera_1_"+std::to_string(counter2++)+".exr", f2);
+
+		std::vector<cv::Mat_<float>> d3;
+		cv::Mat_<cv::Vec3f> f3;
+		d3.push_back(low);
+		d3.push_back(low);
+		d3.push_back(low);
+		cv::merge(d3, f3);
+		cv::imwrite("camera_2_"+std::to_string(counter3++)+".exr", f3);
+
+		cv::waitKey(1);
 		//resize to appropriate size so we can put it into network
 		cv::Mat_<float> normalized_high, normalized_mid, normalized_low;
 		std::vector<cv::Mat_<float> > imgs;
