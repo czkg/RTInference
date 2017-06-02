@@ -20,7 +20,7 @@
 #define input_size 96   //network input size
 #define thres 0.7  //threshold to segment the hand from backgrounds
 #define heatmap_width 20 //width of the heatmap
-#define mul 3  //the multiple of the dispaly window
+#define mul 2  //the multiple of the dispaly window
 
 using namespace openni;
 
@@ -119,85 +119,99 @@ int main(int argc, char** argv)
 		//find the hand region
 		cropped.setTo(1.0, (cropped > thres) | (cropped <= 0));
 		//normalize hand
-		cv::Mat_<float> normalized = Preprocess::normalizeHand(cropped);
-		cv::imshow("nor", normalized);
-		cv::Mat_<float> high;
-		cv::Mat_<float> mid;
-		cv::Mat_<float> low;
-		cv::resize(normalized, high, cv::Size(96, 96), 0, 0, cv::INTER_AREA);
-		cv::resize(high, mid, cv::Size(), 0.5, 0.5, cv::INTER_AREA);
-		cv::resize(high, low, cv::Size(), 0.25, 0.25, cv::INTER_AREA);
-		std::vector<cv::Mat_<float>> d1;
-		cv::Mat_<cv::Vec3f> f1;
-		d1.push_back(high);
-		d1.push_back(high);
-		d1.push_back(high);
-		cv::merge(d1, f1);
-		cv::imwrite("camera_0_"+std::to_string(counter1++)+".exr", f1);
+		cv::Mat_<float> roi = Preprocess::findROI(cropped);
+		int roi_width = roi.cols;
+		cv::Mat roi_dis;
+		roi.copyTo(roi_dis);
+		cv::cvtColor(roi_dis, roi_dis, CV_GRAY2BGR);
 
-		std::vector<cv::Mat_<float>> d2;
-		cv::Mat_<cv::Vec3f> f2;
-		d2.push_back(mid);
-		d2.push_back(mid);
-		d2.push_back(mid);
-		cv::merge(d2, f2);
-		cv::imwrite("camera_1_"+std::to_string(counter2++)+".exr", f2);
-
-		std::vector<cv::Mat_<float>> d3;
-		cv::Mat_<cv::Vec3f> f3;
-		d3.push_back(low);
-		d3.push_back(low);
-		d3.push_back(low);
-		cv::merge(d3, f3);
-		cv::imwrite("camera_2_"+std::to_string(counter3++)+".exr", f3);
-
-		cv::waitKey(1);
 		//resize to appropriate size so we can put it into network
-		cv::Mat_<float> normalized_high, normalized_mid, normalized_low;
+		cv::Mat_<float> roi_high, roi_mid, roi_low;
 		std::vector<cv::Mat_<float> > imgs;
 		if(inference.numInputs() == 1) {
-			cv::resize(normalized, normalized, cv::Size(input_size, input_size), 0, 0, cv::INTER_AREA);
-			imgs.push_back(normalized);
+			cv::resize(roi, roi, cv::Size(input_size, input_size), 0, 0, cv::INTER_AREA);
+			imgs.push_back(roi);
 		}
 		else {
-			cv::resize(normalized, normalized_high, cv::Size(input_size, input_size), 0, 0, cv::INTER_AREA);
-			cv::resize(normalized, normalized_mid, cv::Size(input_size / 2, input_size / 2), 0, 0, cv::INTER_AREA);
-			cv::resize(normalized, normalized_low, cv::Size(input_size / 4, input_size / 4), 0, 0, cv::INTER_AREA);
-			imgs.push_back(normalized_high);
-			imgs.push_back(normalized_mid);
-			imgs.push_back(normalized_low);
+			cv::resize(roi, roi_high, cv::Size(input_size, input_size), 0, 0, cv::INTER_AREA);
+			cv::resize(roi, roi_mid, cv::Size(input_size / 2, input_size / 2), 0, 0, cv::INTER_AREA);
+			cv::resize(roi, roi_low, cv::Size(input_size / 4, input_size / 4), 0, 0, cv::INTER_AREA);
+			imgs.push_back(roi_high);
+			imgs.push_back(roi_mid);
+			imgs.push_back(roi_low);
 		}
-		// cv::Mat_<float> filtered = Preprocess::filter(normalized);
-		// filtered = (filtered + 1.0) / 2.0;
 
 		//feed the image into the network
 		std::vector<float> result = inference.Predict(imgs);
 		int heatmap_size = heatmap_width * heatmap_width;
 		std::vector<cv::Point> coordinates;
 		coordinates.resize(20);
-		//cv::cvtColor(filtered, filtered, CV_GRAY2BGR);
+		
+		std::vector<float> xs, ys;
 
-		// cv::Mat_<float> nor_dis = normalized;
-		// cv::resize(nor_dis, nor_dis, cv::Size(), mul, mul, cv::INTER_AREA);
-
+		//thumb
 		for(int i = 0; i < 20; i++) {
 			std::vector<float> current(result.begin() + i * heatmap_size, result.begin() + (i + 1) * heatmap_size);
 			auto ite_max = std::max_element(current.begin(), current.end());
 			int max = std::distance(current.begin(), ite_max);
-			// float x = (max % heatmap_width) / (float)heatmap_width * (float)input_size * (float)mul;
-			// float y = (max / heatmap_width) / (float)heatmap_width * (float)input_size * (float)mul;
-			float x = (max % heatmap_width) / (float)heatmap_width * (float)radius * 2.0;
-			float y = (max / heatmap_width) / (float)heatmap_width * (float)radius * 2.0;
-			x += p1.x;
-			y += p1.y;
-			coordinates[i] = cv::Point(x, y);
-			cv::circle(dis, coordinates[i], 2, cv::Scalar(0, 0, 255));
+			float x = (max % heatmap_width) / (float)heatmap_width * (float)roi_width;
+			float y = (max / heatmap_width) / (float)heatmap_width * (float)roi_width;
+			xs.push_back(x);
+			ys.push_back(y);
 		}
-		// cv::imshow("normalized", nor_dis);
-		// cv::waitKey(1);
+		cv::circle(roi_dis, cv::Point(xs[0], ys[0]), 2, cv::Scalar(255, 255, 255));
+
+		//thumb
+		cv::circle(roi_dis, cv::Point(xs[1], ys[1]), 2, cv::Scalar(0, 255, 0));
+		cv::circle(roi_dis, cv::Point(xs[2], ys[2]), 2, cv::Scalar(0, 255, 0));
+		cv::circle(roi_dis, cv::Point(xs[3], ys[3]), 2, cv::Scalar(0, 255, 0));
+		cv::line(roi_dis, cv::Point(xs[0], ys[0]), cv::Point(xs[1], ys[1]), cv::Scalar(0, 255, 0));
+		cv::line(roi_dis, cv::Point(xs[1], ys[1]), cv::Point(xs[2], ys[2]), cv::Scalar(0, 255, 0));
+		cv::line(roi_dis, cv::Point(xs[2], ys[2]), cv::Point(xs[3], ys[3]), cv::Scalar(0, 255, 0));
+
+		//index finger
+		cv::circle(roi_dis, cv::Point(xs[4], ys[4]), 2, cv::Scalar(255, 0, 255));
+		cv::circle(roi_dis, cv::Point(xs[5], ys[5]), 2, cv::Scalar(255, 0, 255));
+		cv::circle(roi_dis, cv::Point(xs[6], ys[6]), 2, cv::Scalar(255, 0, 255));
+		cv::circle(roi_dis, cv::Point(xs[7], ys[7]), 2, cv::Scalar(255, 0, 255));
+		cv::line(roi_dis, cv::Point(xs[0], ys[0]), cv::Point(xs[4], ys[4]), cv::Scalar(255, 0, 255));
+		cv::line(roi_dis, cv::Point(xs[4], ys[4]), cv::Point(xs[5], ys[5]), cv::Scalar(255, 0, 255));
+		cv::line(roi_dis, cv::Point(xs[5], ys[5]), cv::Point(xs[6], ys[6]), cv::Scalar(255, 0, 255));
+		cv::line(roi_dis, cv::Point(xs[6], ys[6]), cv::Point(xs[7], ys[7]), cv::Scalar(255, 0, 255));
+
+		//middle finger
+		cv::circle(roi_dis, cv::Point(xs[8], ys[8]), 2, cv::Scalar(0, 255, 255));
+		cv::circle(roi_dis, cv::Point(xs[9], ys[9]), 2, cv::Scalar(0, 255, 255));
+		cv::circle(roi_dis, cv::Point(xs[10], ys[10]), 2, cv::Scalar(0, 255, 255));
+		cv::circle(roi_dis, cv::Point(xs[11], ys[11]), 2, cv::Scalar(0, 255, 255));
+		cv::line(roi_dis, cv::Point(xs[0], ys[0]), cv::Point(xs[8], ys[8]), cv::Scalar(0, 255, 255));
+		cv::line(roi_dis, cv::Point(xs[8], ys[8]), cv::Point(xs[9], ys[9]), cv::Scalar(0, 255, 255));
+		cv::line(roi_dis, cv::Point(xs[9], ys[9]), cv::Point(xs[10], ys[10]), cv::Scalar(0, 255, 255));
+		cv::line(roi_dis, cv::Point(xs[10], ys[10]), cv::Point(xs[11], ys[11]), cv::Scalar(0, 255, 255));
+
+		//ring finger
+		cv::circle(roi_dis, cv::Point(xs[12], ys[12]), 2, cv::Scalar(255, 0, 0));
+		cv::circle(roi_dis, cv::Point(xs[13], ys[13]), 2, cv::Scalar(255, 0, 0));
+		cv::circle(roi_dis, cv::Point(xs[14], ys[14]), 2, cv::Scalar(255, 0, 0));
+		cv::circle(roi_dis, cv::Point(xs[15], ys[15]), 2, cv::Scalar(255, 0, 0));
+		cv::line(roi_dis, cv::Point(xs[0], ys[0]), cv::Point(xs[12], ys[12]), cv::Scalar(255, 0, 0));
+		cv::line(roi_dis, cv::Point(xs[12], ys[12]), cv::Point(xs[13], ys[13]), cv::Scalar(255, 0, 0));
+		cv::line(roi_dis, cv::Point(xs[13], ys[13]), cv::Point(xs[14], ys[14]), cv::Scalar(255, 0, 0));
+		cv::line(roi_dis, cv::Point(xs[14], ys[14]), cv::Point(xs[15], ys[15]), cv::Scalar(255, 0, 0));
+
+		//little finger
+		cv::circle(roi_dis, cv::Point(xs[16], ys[16]), 2, cv::Scalar(0, 0, 255));
+		cv::circle(roi_dis, cv::Point(xs[17], ys[17]), 2, cv::Scalar(0, 0, 255));
+		cv::circle(roi_dis, cv::Point(xs[18], ys[18]), 2, cv::Scalar(0, 0, 255));
+		cv::circle(roi_dis, cv::Point(xs[19], ys[19]), 2, cv::Scalar(0, 0, 255));
+		cv::line(roi_dis, cv::Point(xs[0], ys[0]), cv::Point(xs[16], ys[16]), cv::Scalar(0, 0, 255));
+		cv::line(roi_dis, cv::Point(xs[16], ys[16]), cv::Point(xs[17], ys[17]), cv::Scalar(0, 0, 255));
+		cv::line(roi_dis, cv::Point(xs[17], ys[17]), cv::Point(xs[18], ys[18]), cv::Scalar(0, 0, 255));
+		cv::line(roi_dis, cv::Point(xs[18], ys[18]), cv::Point(xs[19], ys[19]), cv::Scalar(0, 0, 255));
 
 		//show image
 		cv::imshow("frame", dis);
+		cv::imshow("results", roi_dis);
 		cv::waitKey(1);
 
 		int middleIndex = (frame.getHeight()+1)*frame.getWidth()/2;

@@ -15,7 +15,7 @@ public:
 	Preprocess() {}
 	~Preprocess() {}
 	static cv::Mat_<float> filter(const cv::Mat_<float>& img);
-	static cv::Mat_<float> normalizeHand(const cv::Mat_<float>& img);
+	static cv::Mat_<float> findROI(const cv::Mat_<float>& img);
 };
 
 #endif

@@ -57,7 +57,7 @@ bool GetSquareImage(cv::Mat& depth, const int& target_width) {
     return true;
 }
 
-cv::Mat_<float> Preprocess::normalizeHand(const cv::Mat_<float>& img) {
+cv::Mat_<float> Preprocess::findROI(const cv::Mat_<float>& img) {
 	double maxv = -10.0;
     double minv = 10.0;
 
