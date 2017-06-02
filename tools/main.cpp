@@ -16,9 +16,9 @@
 #include <algorithm>
 
 #define SAMPLE_READ_WAIT_TIMEOUT 2000 //2000ms
-#define radius 80   //radius of the ROI
+#define radius 120   //radius of the ROI
 #define input_size 96   //network input size
-#define thres 0.7  //threshold to segment the hand from backgrounds
+#define thres 0.6  //threshold to segment the hand from backgrounds
 #define heatmap_width 20 //width of the heatmap
 #define mul 2  //the multiple of the dispaly window
 
@@ -67,9 +67,7 @@ int main(int argc, char** argv)
 	std::string model_file = argv[1];
 	std::string weight_file = argv[2];
 	Inference inference(model_file, weight_file);
-	int counter1 = 0;
-	int counter2 = 0;
-	int counter3 = 0;
+	int count = 0;
 
 	while (!wasKeyboardHit())
 	{
@@ -120,6 +118,7 @@ int main(int argc, char** argv)
 		cropped.setTo(1.0, (cropped > thres) | (cropped <= 0));
 		//normalize hand
 		cv::Mat_<float> roi = Preprocess::findROI(cropped);
+		//cv::Mat mm = (roi != 2.0);
 		int roi_width = roi.cols;
 		cv::Mat roi_dis;
 		roi.copyTo(roi_dis);
@@ -212,6 +211,9 @@ int main(int argc, char** argv)
 		//show image
 		cv::imshow("frame", dis);
 		cv::imshow("results", roi_dis);
+		// std::string name = "res/" + std::to_string(++count) + ".jpg";
+		// roi_dis.setTo(cv::Scalar(255, 255, 255), ~mm);
+		// cv::imwrite(name, roi_dis);
 		cv::waitKey(1);
 
 		int middleIndex = (frame.getHeight()+1)*frame.getWidth()/2;

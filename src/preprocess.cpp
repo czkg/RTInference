@@ -31,7 +31,7 @@ cv::Mat_<float> Preprocess::filter(const cv::Mat_<float>& img) {
     return des;
 }
 
-bool GetSquareImage(cv::Mat& depth, const int& target_width) {
+bool GetSquareImage(cv::Mat& depth) {
     int width = depth.cols, height = depth.rows;
 
     int top = 0, bottom = 0, left = 0, right = 0;
@@ -90,7 +90,7 @@ cv::Mat_<float> Preprocess::findROI(const cv::Mat_<float>& img) {
     cv::Mat des_roi;
     des(box).copyTo(des_roi);
 
-    GetSquareImage(des_roi, 100);
+    GetSquareImage(des_roi);
 
     return des_roi;
 }
