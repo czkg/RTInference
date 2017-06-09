@@ -118,7 +118,7 @@ int main(int argc, char** argv)
 		cropped.setTo(1.0, (cropped > thres) | (cropped <= 0));
 		//normalize hand
 		cv::Mat_<float> roi = Preprocess::findROI(cropped);
-		//cv::Mat mm = (roi != 2.0);
+		cv::Mat mm = (roi != 2.0);
 		int roi_width = roi.cols;
 		cv::Mat roi_dis;
 		roi.copyTo(roi_dis);
@@ -211,9 +211,9 @@ int main(int argc, char** argv)
 		//show image
 		cv::imshow("frame", dis);
 		cv::imshow("results", roi_dis);
-		// std::string name = "res/" + std::to_string(++count) + ".jpg";
-		// roi_dis.setTo(cv::Scalar(255, 255, 255), ~mm);
-		// cv::imwrite(name, roi_dis);
+		std::string name = "res/" + std::to_string(++count) + ".jpg";
+		roi_dis.setTo(cv::Scalar(255, 255, 255), ~mm);
+		cv::imwrite(name, dis * 255);
 		cv::waitKey(1);
 
 		int middleIndex = (frame.getHeight()+1)*frame.getWidth()/2;
