@@ -64,8 +64,14 @@ int main(int argc, char** argv)
 
 	VideoFrameRef frame;
 
+	if(argc != 4) {
+		std::cout << "Accept 4 arguments!" << std::endl;
+		return 5;
+	}
+
 	std::string model_file = argv[1];
 	std::string weight_file = argv[2];
+	int isFT = std::atoi(argv[3]);
 	Inference inference(model_file, weight_file);
 	int count = 0;
 
@@ -144,69 +150,106 @@ int main(int argc, char** argv)
 		std::vector<float> result = inference.Predict(imgs);
 		int heatmap_size = heatmap_width * heatmap_width;
 		std::vector<cv::Point> coordinates;
-		coordinates.resize(20);
+		if(isFT) {
+			coordinates.resize(5);
+		}
+		else {
+			coordinates.resize(20);
+		}
 		
 		std::vector<float> xs, ys;
 
-		//thumb
-		for(int i = 0; i < 20; i++) {
-			std::vector<float> current(result.begin() + i * heatmap_size, result.begin() + (i + 1) * heatmap_size);
-			auto ite_max = std::max_element(current.begin(), current.end());
-			int max = std::distance(current.begin(), ite_max);
-			float x = (max % heatmap_width) / (float)heatmap_width * (float)roi_width;
-			float y = (max / heatmap_width) / (float)heatmap_width * (float)roi_width;
-			xs.push_back(x);
-			ys.push_back(y);
+		//store all joints
+		if(isFT) {
+			for(int i = 0; i < 5; i++) {
+				std::vector<float> current(result.begin() + i * heatmap_size, result.begin() + (i + 1) * heatmap_size);
+				auto ite_max = std::max_element(current.begin(), current.end());
+				int max = std::distance(current.begin(), ite_max);
+				float x = (max % heatmap_width) / (float)heatmap_width * (float)roi_width;
+				float y = (max / heatmap_width) / (float)heatmap_width * (float)roi_width;
+				xs.push_back(x);
+				ys.push_back(y);
+			}
 		}
-		cv::circle(roi_dis, cv::Point(xs[0], ys[0]), 2, cv::Scalar(255, 255, 255));
+		else {
+			for(int i = 0; i < 20; i++) {
+				std::vector<float> current(result.begin() + i * heatmap_size, result.begin() + (i + 1) * heatmap_size);
+				auto ite_max = std::max_element(current.begin(), current.end());
+				int max = std::distance(current.begin(), ite_max);
+				float x = (max % heatmap_width) / (float)heatmap_width * (float)roi_width;
+				float y = (max / heatmap_width) / (float)heatmap_width * (float)roi_width;
+				xs.push_back(x);
+				ys.push_back(y);
+			}
+		}
+		
+		if(isFT) {
+			//thumb tip
+			cv::circle(roi_dis, cv::Point(xs[0], ys[0]), 2, cv::Scalar(0, 255, 0));
 
-		//thumb
-		cv::circle(roi_dis, cv::Point(xs[1], ys[1]), 2, cv::Scalar(0, 255, 0));
-		cv::circle(roi_dis, cv::Point(xs[2], ys[2]), 2, cv::Scalar(0, 255, 0));
-		cv::circle(roi_dis, cv::Point(xs[3], ys[3]), 2, cv::Scalar(0, 255, 0));
-		cv::line(roi_dis, cv::Point(xs[0], ys[0]), cv::Point(xs[1], ys[1]), cv::Scalar(0, 255, 0));
-		cv::line(roi_dis, cv::Point(xs[1], ys[1]), cv::Point(xs[2], ys[2]), cv::Scalar(0, 255, 0));
-		cv::line(roi_dis, cv::Point(xs[2], ys[2]), cv::Point(xs[3], ys[3]), cv::Scalar(0, 255, 0));
+			//index finger tip
+			cv::circle(roi_dis, cv::Point(xs[1], ys[1]), 2, cv::Scalar(255, 0, 255));
 
-		//index finger
-		cv::circle(roi_dis, cv::Point(xs[4], ys[4]), 2, cv::Scalar(255, 0, 255));
-		cv::circle(roi_dis, cv::Point(xs[5], ys[5]), 2, cv::Scalar(255, 0, 255));
-		cv::circle(roi_dis, cv::Point(xs[6], ys[6]), 2, cv::Scalar(255, 0, 255));
-		cv::circle(roi_dis, cv::Point(xs[7], ys[7]), 2, cv::Scalar(255, 0, 255));
-		cv::line(roi_dis, cv::Point(xs[0], ys[0]), cv::Point(xs[4], ys[4]), cv::Scalar(255, 0, 255));
-		cv::line(roi_dis, cv::Point(xs[4], ys[4]), cv::Point(xs[5], ys[5]), cv::Scalar(255, 0, 255));
-		cv::line(roi_dis, cv::Point(xs[5], ys[5]), cv::Point(xs[6], ys[6]), cv::Scalar(255, 0, 255));
-		cv::line(roi_dis, cv::Point(xs[6], ys[6]), cv::Point(xs[7], ys[7]), cv::Scalar(255, 0, 255));
+			//middle finger tip
+			cv::circle(roi_dis, cv::Point(xs[2], ys[2]), 2, cv::Scalar(0, 255, 255));
 
-		//middle finger
-		cv::circle(roi_dis, cv::Point(xs[8], ys[8]), 2, cv::Scalar(0, 255, 255));
-		cv::circle(roi_dis, cv::Point(xs[9], ys[9]), 2, cv::Scalar(0, 255, 255));
-		cv::circle(roi_dis, cv::Point(xs[10], ys[10]), 2, cv::Scalar(0, 255, 255));
-		cv::circle(roi_dis, cv::Point(xs[11], ys[11]), 2, cv::Scalar(0, 255, 255));
-		cv::line(roi_dis, cv::Point(xs[0], ys[0]), cv::Point(xs[8], ys[8]), cv::Scalar(0, 255, 255));
-		cv::line(roi_dis, cv::Point(xs[8], ys[8]), cv::Point(xs[9], ys[9]), cv::Scalar(0, 255, 255));
-		cv::line(roi_dis, cv::Point(xs[9], ys[9]), cv::Point(xs[10], ys[10]), cv::Scalar(0, 255, 255));
-		cv::line(roi_dis, cv::Point(xs[10], ys[10]), cv::Point(xs[11], ys[11]), cv::Scalar(0, 255, 255));
+			//ring finger tip
+			cv::circle(roi_dis, cv::Point(xs[3], ys[3]), 2, cv::Scalar(255, 0, 0));
 
-		//ring finger
-		cv::circle(roi_dis, cv::Point(xs[12], ys[12]), 2, cv::Scalar(255, 0, 0));
-		cv::circle(roi_dis, cv::Point(xs[13], ys[13]), 2, cv::Scalar(255, 0, 0));
-		cv::circle(roi_dis, cv::Point(xs[14], ys[14]), 2, cv::Scalar(255, 0, 0));
-		cv::circle(roi_dis, cv::Point(xs[15], ys[15]), 2, cv::Scalar(255, 0, 0));
-		cv::line(roi_dis, cv::Point(xs[0], ys[0]), cv::Point(xs[12], ys[12]), cv::Scalar(255, 0, 0));
-		cv::line(roi_dis, cv::Point(xs[12], ys[12]), cv::Point(xs[13], ys[13]), cv::Scalar(255, 0, 0));
-		cv::line(roi_dis, cv::Point(xs[13], ys[13]), cv::Point(xs[14], ys[14]), cv::Scalar(255, 0, 0));
-		cv::line(roi_dis, cv::Point(xs[14], ys[14]), cv::Point(xs[15], ys[15]), cv::Scalar(255, 0, 0));
+			//little finger tip
+			cv::circle(roi_dis, cv::Point(xs[4], ys[4]), 2, cv::Scalar(0, 0, 255));
+		}
+		else {
+			cv::circle(roi_dis, cv::Point(xs[0], ys[0]), 2, cv::Scalar(255, 255, 255));
 
-		//little finger
-		cv::circle(roi_dis, cv::Point(xs[16], ys[16]), 2, cv::Scalar(0, 0, 255));
-		cv::circle(roi_dis, cv::Point(xs[17], ys[17]), 2, cv::Scalar(0, 0, 255));
-		cv::circle(roi_dis, cv::Point(xs[18], ys[18]), 2, cv::Scalar(0, 0, 255));
-		cv::circle(roi_dis, cv::Point(xs[19], ys[19]), 2, cv::Scalar(0, 0, 255));
-		cv::line(roi_dis, cv::Point(xs[0], ys[0]), cv::Point(xs[16], ys[16]), cv::Scalar(0, 0, 255));
-		cv::line(roi_dis, cv::Point(xs[16], ys[16]), cv::Point(xs[17], ys[17]), cv::Scalar(0, 0, 255));
-		cv::line(roi_dis, cv::Point(xs[17], ys[17]), cv::Point(xs[18], ys[18]), cv::Scalar(0, 0, 255));
-		cv::line(roi_dis, cv::Point(xs[18], ys[18]), cv::Point(xs[19], ys[19]), cv::Scalar(0, 0, 255));
+			//thumb
+			cv::circle(roi_dis, cv::Point(xs[1], ys[1]), 2, cv::Scalar(0, 255, 0));
+			cv::circle(roi_dis, cv::Point(xs[2], ys[2]), 2, cv::Scalar(0, 255, 0));
+			cv::circle(roi_dis, cv::Point(xs[3], ys[3]), 2, cv::Scalar(0, 255, 0));
+			cv::line(roi_dis, cv::Point(xs[0], ys[0]), cv::Point(xs[1], ys[1]), cv::Scalar(0, 255, 0));
+			cv::line(roi_dis, cv::Point(xs[1], ys[1]), cv::Point(xs[2], ys[2]), cv::Scalar(0, 255, 0));
+			cv::line(roi_dis, cv::Point(xs[2], ys[2]), cv::Point(xs[3], ys[3]), cv::Scalar(0, 255, 0));
+
+			//index finger
+			cv::circle(roi_dis, cv::Point(xs[4], ys[4]), 2, cv::Scalar(255, 0, 255));
+			cv::circle(roi_dis, cv::Point(xs[5], ys[5]), 2, cv::Scalar(255, 0, 255));
+			cv::circle(roi_dis, cv::Point(xs[6], ys[6]), 2, cv::Scalar(255, 0, 255));
+			cv::circle(roi_dis, cv::Point(xs[7], ys[7]), 2, cv::Scalar(255, 0, 255));
+			cv::line(roi_dis, cv::Point(xs[0], ys[0]), cv::Point(xs[4], ys[4]), cv::Scalar(255, 0, 255));
+			cv::line(roi_dis, cv::Point(xs[4], ys[4]), cv::Point(xs[5], ys[5]), cv::Scalar(255, 0, 255));
+			cv::line(roi_dis, cv::Point(xs[5], ys[5]), cv::Point(xs[6], ys[6]), cv::Scalar(255, 0, 255));
+			cv::line(roi_dis, cv::Point(xs[6], ys[6]), cv::Point(xs[7], ys[7]), cv::Scalar(255, 0, 255));
+
+			//middle finger
+			cv::circle(roi_dis, cv::Point(xs[8], ys[8]), 2, cv::Scalar(0, 255, 255));
+			cv::circle(roi_dis, cv::Point(xs[9], ys[9]), 2, cv::Scalar(0, 255, 255));
+			cv::circle(roi_dis, cv::Point(xs[10], ys[10]), 2, cv::Scalar(0, 255, 255));
+			cv::circle(roi_dis, cv::Point(xs[11], ys[11]), 2, cv::Scalar(0, 255, 255));
+			cv::line(roi_dis, cv::Point(xs[0], ys[0]), cv::Point(xs[8], ys[8]), cv::Scalar(0, 255, 255));
+			cv::line(roi_dis, cv::Point(xs[8], ys[8]), cv::Point(xs[9], ys[9]), cv::Scalar(0, 255, 255));
+			cv::line(roi_dis, cv::Point(xs[9], ys[9]), cv::Point(xs[10], ys[10]), cv::Scalar(0, 255, 255));
+			cv::line(roi_dis, cv::Point(xs[10], ys[10]), cv::Point(xs[11], ys[11]), cv::Scalar(0, 255, 255));
+
+			//ring finger
+			cv::circle(roi_dis, cv::Point(xs[12], ys[12]), 2, cv::Scalar(255, 0, 0));
+			cv::circle(roi_dis, cv::Point(xs[13], ys[13]), 2, cv::Scalar(255, 0, 0));
+			cv::circle(roi_dis, cv::Point(xs[14], ys[14]), 2, cv::Scalar(255, 0, 0));
+			cv::circle(roi_dis, cv::Point(xs[15], ys[15]), 2, cv::Scalar(255, 0, 0));
+			cv::line(roi_dis, cv::Point(xs[0], ys[0]), cv::Point(xs[12], ys[12]), cv::Scalar(255, 0, 0));
+			cv::line(roi_dis, cv::Point(xs[12], ys[12]), cv::Point(xs[13], ys[13]), cv::Scalar(255, 0, 0));
+			cv::line(roi_dis, cv::Point(xs[13], ys[13]), cv::Point(xs[14], ys[14]), cv::Scalar(255, 0, 0));
+			cv::line(roi_dis, cv::Point(xs[14], ys[14]), cv::Point(xs[15], ys[15]), cv::Scalar(255, 0, 0));
+
+			//little finger
+			cv::circle(roi_dis, cv::Point(xs[16], ys[16]), 2, cv::Scalar(0, 0, 255));
+			cv::circle(roi_dis, cv::Point(xs[17], ys[17]), 2, cv::Scalar(0, 0, 255));
+			cv::circle(roi_dis, cv::Point(xs[18], ys[18]), 2, cv::Scalar(0, 0, 255));
+			cv::circle(roi_dis, cv::Point(xs[19], ys[19]), 2, cv::Scalar(0, 0, 255));
+			cv::line(roi_dis, cv::Point(xs[0], ys[0]), cv::Point(xs[16], ys[16]), cv::Scalar(0, 0, 255));
+			cv::line(roi_dis, cv::Point(xs[16], ys[16]), cv::Point(xs[17], ys[17]), cv::Scalar(0, 0, 255));
+			cv::line(roi_dis, cv::Point(xs[17], ys[17]), cv::Point(xs[18], ys[18]), cv::Scalar(0, 0, 255));
+			cv::line(roi_dis, cv::Point(xs[18], ys[18]), cv::Point(xs[19], ys[19]), cv::Scalar(0, 0, 255));
+		}
 
 		//show image
 		cv::imshow("frame", dis);
