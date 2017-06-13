@@ -13,6 +13,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 include(${PROJECT_SOURCE_DIR}/cmake/FindGlog.cmake)
+include(${PROJECT_SOURCE_DIR}/cmake/FindCaffe.cmake)
 
 find_package(OpenCV REQUIRED COMPONENTS core imgproc video highgui features2d ml)
 find_package(OpenGL REQUIRED)
@@ -27,8 +28,8 @@ find_package(Boost REQUIRED COMPONENTS system
                               unit_test_framework
                               program_options)
 
-set(OPENNI2_INCLUDE_DIR "/home/zhi/Downloads/OpenNI-Linux-x64-2.3/Include")
-set(OPENNI2_LIB_DIR "/home/zhi/Downloads/OpenNI-Linux-x64-2.3/Redist")
+set(OPENNI2_INCLUDE_DIR "/home/cz/Downloads/OpenNI-Linux-x64-2.3/Include")
+set(OPENNI2_LIB_DIR "/home/cz/Downloads/OpenNI-Linux-x64-2.3/Redist")
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${OPENNI2_INCLUDE_DIR})
@@ -39,9 +40,9 @@ include_directories(${Caffe_INCLUDE_DIRS})
 
 
 set(RTI_LIBRARIES 
-  /home/zhi/Downloads/OpenNI-Linux-x64-2.3/Redist/libOpenNI2.so
-  /home/zhi/Downloads/OpenNI-Linux-x64-2.3/Redist/OpenNI2/Drivers/libOniFile.so
-  /home/zhi/Downloads/OpenNI-Linux-x64-2.3/Redist/OpenNI2/Drivers/liborbbec.so
+  /home/cz/Downloads/OpenNI-Linux-x64-2.3/Redist/libOpenNI2.so
+  /home/cz/Downloads/OpenNI-Linux-x64-2.3/Redist/OpenNI2/Drivers/libOniFile.so
+  /home/cz/Downloads/OpenNI-Linux-x64-2.3/Redist/OpenNI2/Drivers/liborbbec.so
   ${OpenCV_LIBS}
   ${OPENGL_LIBRARIES}
   ${GLUT_LIBRARY}

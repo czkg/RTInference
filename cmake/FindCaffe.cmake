@@ -2,7 +2,7 @@
 unset(Caffe_FOUND)
 
 ###Set the variable Caffe_DIR as the root of your caffe directory
-set(Caffe_DIR /home/zhi/caffe-cz)
+set(Caffe_DIR /home/cz/caffe)
 
 
 find_path(Caffe_INCLUDE_DIRS NAMES caffe/caffe.hpp caffe/common.hpp caffe/net.hpp caffe/util/io.hpp caffe/layer.hpp
