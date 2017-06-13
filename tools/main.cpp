@@ -69,7 +69,9 @@ int main(int argc, char** argv)
 		return 5;
 	}
 
+	//model_file: deploy prototxt
 	std::string model_file = argv[1];
+	//weight file: caffe model
 	std::string weight_file = argv[2];
 	int isFT = std::atoi(argv[3]);
 	Inference inference(model_file, weight_file);
