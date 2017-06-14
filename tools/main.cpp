@@ -128,8 +128,7 @@ int main(int argc, char** argv)
 		cv::Mat_<float> roi = Preprocess::findROI(cropped);
 		cv::Mat mm = (roi != 2.0);
 		int roi_width = roi.cols;
-		cv::Mat roi_dis;
-		roi.copyTo(roi_dis);
+		cv::Mat roi_dis = Preprocess::filter(roi);
 		cv::cvtColor(roi_dis, roi_dis, CV_GRAY2BGR);
 
 		//resize to appropriate size so we can put it into network
