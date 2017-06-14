@@ -27,6 +27,9 @@ cv::Mat_<float> Preprocess::filter(const cv::Mat_<float>& img) {
    	delta = cv::max(delta, c);
 
     des = des / delta;
+
+    //normalize to -1 to 1
+    des = (des + 1.0) / 2.0;
     
     return des;
 }
