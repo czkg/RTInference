@@ -137,15 +137,19 @@ int main(int argc, char** argv)
 		std::vector<cv::Mat_<float> > imgs;
 		if(inference.numInputs() == 1) {
 			cv::resize(roi, roi, cv::Size(input_size, input_size), 0, 0, cv::INTER_AREA);
-			imgs.push_back(roi);
+			cv::Mat_<float> roi_input = Preprocess::filter(roi);
+			imgs.push_back(roi_input);
 		}
 		else {
 			cv::resize(roi, roi_high, cv::Size(input_size, input_size), 0, 0, cv::INTER_AREA);
 			cv::resize(roi, roi_mid, cv::Size(input_size / 2, input_size / 2), 0, 0, cv::INTER_AREA);
 			cv::resize(roi, roi_low, cv::Size(input_size / 4, input_size / 4), 0, 0, cv::INTER_AREA);
-			imgs.push_back(roi_high);
-			imgs.push_back(roi_mid);
-			imgs.push_back(roi_low);
+			cv::Mat_<float> roi_input_high = Preprocess::filter(roi_high);
+			cv::Mat_<float> roi_input_mid = Preprocess::filter(roi_mid);
+			cv::Mat_<float> roi_input_low = Preprocess::filter(roi_low);
+			imgs.push_back(roi_input_high);
+			imgs.push_back(roi_input_mid);
+			imgs.push_back(roi_input_low);
 		}
 
 		//feed the image into the network
