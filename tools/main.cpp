@@ -116,10 +116,6 @@ int main(int argc, char** argv)
 		cv::Point p2(center.x + radius, center.y + radius);
 		cv::rectangle(dis, p1, p2, cv::Scalar(0, 0, 255));
 
-		//show image
-		// cv::imshow("frame", dis);
-		// cv::waitKey(1);
-
 		//crop the image to feed into the network
 		cv::Mat_<float> cropped = im32f(cv::Range(p1.y, p2.y), cv::Range(p1.x, p2.x));
 		//find the hand region

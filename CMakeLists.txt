@@ -37,6 +37,7 @@ include_directories(${OPENGL_INCLUDE_DIRS}  ${GLUT_INCLUDE_DIRS})
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${GLOG_INCLUDE_DIRS})
 include_directories(${Caffe_INCLUDE_DIRS})
+include_directories("/usr/local/cuda-8.0/targets/x86_64-linux/include")
 
 
 set(RTI_LIBRARIES 
