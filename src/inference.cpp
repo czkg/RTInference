@@ -1,5 +1,7 @@
 #include <inference.hpp>
 
+using caffe::Caffe;
+
 
 Inference::Inference(const std::string& model_file, const std::string& weight_file) {
 	//model file: deploy prototxt

@@ -14,6 +14,7 @@
 #include <inference.hpp>
 #include <vector>
 #include <algorithm>
+#include <caffe/caffe.hpp>
 
 #define SAMPLE_READ_WAIT_TIMEOUT 2000 //2000ms
 #define radius 120   //radius of the ROI
@@ -23,6 +24,7 @@
 #define mul 2  //the multiple of the dispaly window
 
 using namespace openni;
+using caffe::Caffe;
 
 int main(int argc, char** argv)
 {
@@ -64,16 +66,31 @@ int main(int argc, char** argv)
 
 	VideoFrameRef frame;
 
-	if(argc != 4) {
+	if(argc != 5) {
 		std::cout << "Accept 4 arguments!" << std::endl;
 		return 5;
 	}
 
-	//model_file: deploy prototxt
+	//arg 1: model_file: deploy prototxt
 	std::string model_file = argv[1];
-	//weight file: caffe model
+	//arg 2: weight file: caffe model
 	std::string weight_file = argv[2];
+	//arg 3: finger tips only or full hands
 	int isFT = std::atoi(argv[3]);
+	//arg 4: GPU or CPU
+	int isGPU = std::atoi(argv[4]);
+	int device_id = 0;
+
+	if(isGPU) {
+		std::cout << "Use GPU." << std::endl;
+		Caffe::SetDevice(device_id);
+    	Caffe::set_mode(Caffe::GPU);
+	}
+	else {
+		std::cout << "Use CPU." << std::endl;
+		Caffe::set_mode(Caffe::CPU);
+	}
+
 	Inference inference(model_file, weight_file);
 	int count = 0;
 
