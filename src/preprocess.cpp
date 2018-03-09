@@ -8,7 +8,7 @@
 
 
 cv::Mat_<float> Preprocess::filter(const cv::Mat_<float>& img) {
-	const cv::Size kernelSize(9, 9);
+	const cv::Size kernelSize(5, 5);
     cv::Mat_<float> des;
     cv::Mat_<float> delta;
 

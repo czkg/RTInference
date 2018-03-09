@@ -37,6 +37,7 @@ int main(int argc, char** argv)
 
 	Device device;
 
+    //rc = device.open("/home/cz/RTInference/Captured.oni");
     rc = device.open(ANY_DEVICE);
 
     if (rc != STATUS_OK)
@@ -66,9 +67,9 @@ int main(int argc, char** argv)
 
 	VideoFrameRef frame;
 
-	if(argc != 5) {
-		std::cout << "Accept 4 arguments!" << std::endl;
-		return 5;
+	if(argc != 6) {
+		std::cout << "Accept 5 arguments!" << std::endl;
+		return 6;
 	}
 
 	//arg 1: model_file: deploy prototxt
@@ -80,6 +81,8 @@ int main(int argc, char** argv)
 	//arg 4: GPU or CPU
 	int isGPU = std::atoi(argv[4]);
 	int device_id = 0;
+	//arg 5: uvd or uv
+	int isUVD = std::atoi(argv[5]);
 
 	if(isGPU) {
 		std::cout << "Use GPU." << std::endl;
@@ -141,7 +144,10 @@ int main(int argc, char** argv)
 		cv::Mat_<float> roi = Preprocess::findROI(cropped);
 		cv::Mat mm = (roi != 2.0);
 		int roi_width = roi.cols;
-		cv::Mat roi_dis = Preprocess::filter(roi);
+		cv::Mat roi_dis = roi.clone();
+		//if(!isUVD) {
+			roi_dis = Preprocess::filter(roi);
+		//}
 		cv::cvtColor(roi_dis, roi_dis, CV_GRAY2BGR);
 
 		//resize to appropriate size so we can put it into network
@@ -149,6 +155,7 @@ int main(int argc, char** argv)
 		std::vector<cv::Mat_<float> > imgs;
 		if(inference.numInputs() == 1) {
 			cv::resize(roi, roi, cv::Size(input_size, input_size), 0, 0, cv::INTER_AREA);
+			//cv::Mat_<float> roi_input = isUVD ? roi : Preprocess::filter(roi);
 			cv::Mat_<float> roi_input = Preprocess::filter(roi);
 			imgs.push_back(roi_input);
 		}
@@ -156,6 +163,9 @@ int main(int argc, char** argv)
 			cv::resize(roi, roi_high, cv::Size(input_size, input_size), 0, 0, cv::INTER_AREA);
 			cv::resize(roi, roi_mid, cv::Size(input_size / 2, input_size / 2), 0, 0, cv::INTER_AREA);
 			cv::resize(roi, roi_low, cv::Size(input_size / 4, input_size / 4), 0, 0, cv::INTER_AREA);
+			//cv::Mat_<float> roi_input_high = isUVD ? roi_high : Preprocess::filter(roi_high);
+			//cv::Mat_<float> roi_input_mid = isUVD ? roi_mid : Preprocess::filter(roi_mid);
+			//cv::Mat_<float> roi_input_low = isUVD ? roi_low : Preprocess::filter(roi_low);
 			cv::Mat_<float> roi_input_high = Preprocess::filter(roi_high);
 			cv::Mat_<float> roi_input_mid = Preprocess::filter(roi_mid);
 			cv::Mat_<float> roi_input_low = Preprocess::filter(roi_low);
@@ -180,22 +190,36 @@ int main(int argc, char** argv)
 		//store all joints
 		if(isFT) {
 			for(int i = 0; i < 5; i++) {
-				std::vector<float> current(result.begin() + i * heatmap_size, result.begin() + (i + 1) * heatmap_size);
-				auto ite_max = std::max_element(current.begin(), current.end());
-				int max = std::distance(current.begin(), ite_max);
-				float x = (max % heatmap_width) / (float)heatmap_width * (float)roi_width;
-				float y = (max / heatmap_width) / (float)heatmap_width * (float)roi_width;
+				float x, y;
+				if(isUVD) {
+					x = result[i * 2] /(float)input_size * (float)roi_width;
+					y = result[i * 2 + 1] /(float)input_size * (float)roi_width;
+				}
+				else {
+					std::vector<float> current(result.begin() + i * heatmap_size, result.begin() + (i + 1) * heatmap_size);
+					auto ite_max = std::max_element(current.begin(), current.end());
+					int max = std::distance(current.begin(), ite_max);
+					x = (max % heatmap_width) / (float)heatmap_width * (float)roi_width;
+					y = (max / heatmap_width) / (float)heatmap_width * (float)roi_width;
+				}
 				xs.push_back(x);
 				ys.push_back(y);
 			}
 		}
 		else {
 			for(int i = 0; i < 20; i++) {
-				std::vector<float> current(result.begin() + i * heatmap_size, result.begin() + (i + 1) * heatmap_size);
-				auto ite_max = std::max_element(current.begin(), current.end());
-				int max = std::distance(current.begin(), ite_max);
-				float x = (max % heatmap_width) / (float)heatmap_width * (float)roi_width;
-				float y = (max / heatmap_width) / (float)heatmap_width * (float)roi_width;
+				float x, y;
+				if(isUVD) {
+					x = result[i * 2] /(float)input_size * (float)roi_width;
+					y = result[i * 2 + 1] /(float)input_size * (float)roi_width;
+				}
+				else {
+					std::vector<float> current(result.begin() + i * heatmap_size, result.begin() + (i + 1) * heatmap_size);
+					auto ite_max = std::max_element(current.begin(), current.end());
+					int max = std::distance(current.begin(), ite_max);
+					x = (max % heatmap_width) / (float)heatmap_width * (float)roi_width;
+					y = (max / heatmap_width) / (float)heatmap_width * (float)roi_width;
+				}
 				xs.push_back(x);
 				ys.push_back(y);
 			}
